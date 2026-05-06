@@ -1,9 +1,11 @@
-const API_URL = "http://192.168.137.1:5000";
-// 🔴 Replace with YOUR laptop IP
+const API_URL = "https://tdpcl.onrender.com";
+// 🔴 Replace with YOUR actual Render backend URL
 
 /* 🔐 LOGIN */
 export async function loginUser(email, password) {
+
   try {
+
     const res = await fetch(`${API_URL}/login`, {
       method: "POST",
       headers: {
@@ -18,6 +20,7 @@ export async function loginUser(email, password) {
     return await res.json();
 
   } catch (err) {
+
     console.error("LOGIN ERROR:", err);
 
     return {
@@ -28,7 +31,9 @@ export async function loginUser(email, password) {
 
 /* 📚 GET COURSES */
 export async function getTeacherCourses(teacher_id) {
+
   try {
+
     const res = await fetch(
       `${API_URL}/teacher-courses/${teacher_id}`
     );
@@ -36,6 +41,7 @@ export async function getTeacherCourses(teacher_id) {
     return await res.json();
 
   } catch (err) {
+
     console.error("COURSE ERROR:", err);
 
     return [];
@@ -44,7 +50,9 @@ export async function getTeacherCourses(teacher_id) {
 
 /* 🕒 CREATE SESSION */
 export async function createSession(course_id, teacher_id) {
+
   try {
+
     const res = await fetch(`${API_URL}/create-session`, {
       method: "POST",
       headers: {
@@ -59,6 +67,7 @@ export async function createSession(course_id, teacher_id) {
     return await res.json();
 
   } catch (err) {
+
     console.error("CREATE SESSION ERROR:", err);
 
     return {
@@ -69,7 +78,9 @@ export async function createSession(course_id, teacher_id) {
 
 /* 📷 SCAN QR */
 export async function scanQR(token, student_id) {
+
   try {
+
     const res = await fetch(`${API_URL}/scan`, {
       method: "POST",
       headers: {
@@ -84,6 +95,7 @@ export async function scanQR(token, student_id) {
     return await res.json();
 
   } catch (err) {
+
     console.error("SCAN ERROR:", err);
 
     return {
@@ -94,7 +106,9 @@ export async function scanQR(token, student_id) {
 
 /* ✍️ MANUAL ATTENDANCE */
 export async function manualMark(session_id, student_id) {
+
   try {
+
     const res = await fetch(`${API_URL}/manual`, {
       method: "POST",
       headers: {
@@ -109,6 +123,7 @@ export async function manualMark(session_id, student_id) {
     return await res.json();
 
   } catch (err) {
+
     console.error("MANUAL ERROR:", err);
 
     return {

@@ -9,13 +9,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* 🔌 DATABASE CONNECTION */
+/* ✅ DATABASE CONNECTION (RENDER + NEON) */
 const pool = new Pool({
-  user: "postgres",
-  host: "localhost",
-  database: "tdpcl",
-  password: "12345",
-  port: 5432,
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 /* ✅ TEST DATABASE CONNECTION */
@@ -52,7 +51,6 @@ app.post("/login", async (req, res) => {
 
     const dbUser = user.rows[0];
 
-    /* 🔑 PASSWORD CHECK */
     if (password !== dbUser.password_hash) {
       return res.status(400).json({
         message: "Invalid password",
@@ -61,7 +59,6 @@ app.post("/login", async (req, res) => {
 
     let teacher_id = null;
 
-    /* 👨‍🏫 GET TEACHER ID */
     if (dbUser.role === "teacher") {
 
       const teacher = await pool.query(
@@ -73,9 +70,6 @@ app.post("/login", async (req, res) => {
         teacher_id = teacher.rows[0].id;
       }
     }
-
-    console.log("USER:", dbUser.id);
-    console.log("TEACHER ID:", teacher_id);
 
     res.json({
       id: dbUser.id,
@@ -125,9 +119,6 @@ app.post("/create-session", async (req, res) => {
 
   const { course_id, teacher_id } = req.body;
 
-  console.log("COURSE:", course_id);
-  console.log("TEACHER:", teacher_id);
-
   if (!course_id || !teacher_id) {
     return res.status(400).json({
       message: "Missing data",
@@ -168,8 +159,6 @@ app.post("/create-session", async (req, res) => {
 
     );
 
-    console.log("✅ SESSION CREATED");
-
     res.json(result.rows[0]);
 
   } catch (err) {
@@ -195,7 +184,6 @@ app.post("/scan", async (req, res) => {
 
   try {
 
-    /* ✅ FIND ACTIVE SESSION */
     const session = await pool.query(
       `SELECT *
        FROM attendance_sessions
@@ -213,7 +201,6 @@ app.post("/scan", async (req, res) => {
 
     const session_id = session.rows[0].id;
 
-    /* ✅ MARK ATTENDANCE */
     await pool.query(
       `INSERT INTO attendance_records
       (session_id, student_id, scanned_at, status)
@@ -269,7 +256,10 @@ app.post("/manual", async (req, res) => {
   }
 });
 
+/* ✅ PORT FOR RENDER */
+const PORT = process.env.PORT || 5000;
+
 /* 🚀 START SERVER */
-app.listen(5000, "0.0.0.0", () => {
-  console.log("🚀 Server running on port 5000");
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });

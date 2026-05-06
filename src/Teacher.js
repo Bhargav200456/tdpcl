@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import QRCode from "qrcode";
+
 import {
   createSession,
   manualMark,
@@ -9,16 +10,28 @@ import {
 export default function Teacher({ onLogout, user }) {
 
   const [sessionId, setSessionId] = useState("");
-  const [courses, setCourses] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState("");
 
-  const [manualSession, setManualSession] = useState("");
-  const [manualStudent, setManualStudent] = useState("");
-  const [manualStatus, setManualStatus] = useState("");
+  const [courses, setCourses] = useState([]);
+
+  const [selectedCourse, setSelectedCourse] =
+    useState("");
+
+  const [manualSession, setManualSession] =
+    useState("");
+
+  const [manualStudent, setManualStudent] =
+    useState("");
+
+  const [manualStatus, setManualStatus] =
+    useState("");
 
   const [loading, setLoading] = useState(false);
 
-  /* 📚 FETCH TEACHER COURSES */
+  const [timer, setTimer] = useState(10);
+
+  const intervalRef = useRef(null);
+
+  /* 📚 FETCH COURSES */
   useEffect(() => {
 
     if (!user?.teacher_id) return;
@@ -39,10 +52,7 @@ export default function Teacher({ onLogout, user }) {
   /* 🕒 GENERATE QR */
   const generateQR = async () => {
 
-    if (!selectedCourse) {
-      alert("Please select a subject");
-      return;
-    }
+    if (!selectedCourse) return;
 
     setLoading(true);
 
@@ -54,40 +64,93 @@ export default function Teacher({ onLogout, user }) {
       );
 
       if (!data || !data.qr_code_token) {
-        alert("Failed to create session");
+
+        alert("Failed to create QR");
+
         setLoading(false);
+
         return;
       }
 
-      const canvas = document.createElement("canvas");
+      const canvas =
+        document.createElement("canvas");
 
-      await QRCode.toCanvas(canvas, data.qr_code_token, {
-        width: 260,
-        margin: 2,
-      });
+      await QRCode.toCanvas(
+        canvas,
+        data.qr_code_token,
+        {
+          width: 260,
+          margin: 2,
+        }
+      );
 
-      const qrDiv = document.getElementById("qrcode");
+      const qrDiv =
+        document.getElementById("qrcode");
 
       qrDiv.innerHTML = "";
+
       qrDiv.appendChild(canvas);
 
       setSessionId(data.id);
 
+      setTimer(10);
+
     } catch (err) {
 
       console.error(err);
-      alert("QR generation failed");
 
+      alert("QR generation failed");
     }
 
     setLoading(false);
   };
 
+  /* 🔄 AUTO REFRESH QR */
+  useEffect(() => {
+
+    if (!selectedCourse) return;
+
+    generateQR();
+
+    intervalRef.current = setInterval(() => {
+
+      generateQR();
+
+    }, 10000);
+
+    return () => {
+
+      clearInterval(intervalRef.current);
+
+    };
+
+  }, [selectedCourse]);
+
+  /* ⏳ COUNTDOWN */
+  useEffect(() => {
+
+    const countdown = setInterval(() => {
+
+      setTimer((prev) => {
+
+        if (prev <= 1) return 10;
+
+        return prev - 1;
+      });
+
+    }, 1000);
+
+    return () => clearInterval(countdown);
+
+  }, []);
+
   /* ✍️ MANUAL ATTENDANCE */
   const handleManual = async () => {
 
     if (!manualSession || !manualStudent) {
+
       setManualStatus("Enter all fields");
+
       return;
     }
 
@@ -102,6 +165,7 @@ export default function Teacher({ onLogout, user }) {
   };
 
   return (
+
     <div style={{
       minHeight: "100vh",
       background: "#eef2f7",
@@ -147,6 +211,7 @@ export default function Teacher({ onLogout, user }) {
           >
             Logout
           </button>
+
         </div>
 
         {/* TITLE */}
@@ -158,13 +223,14 @@ export default function Teacher({ onLogout, user }) {
           Teacher Dashboard
         </h2>
 
-        {/* CREATE SESSION */}
+        {/* QR SECTION */}
         <div style={{
           background: "#fff",
           padding: "22px",
           borderRadius: "14px",
           marginBottom: "20px",
-          boxShadow: "0 4px 10px rgba(0,0,0,0.08)"
+          boxShadow:
+            "0 4px 10px rgba(0,0,0,0.08)"
         }}>
 
           <h3 style={{
@@ -172,7 +238,7 @@ export default function Teacher({ onLogout, user }) {
             marginBottom: "15px",
             color: "#333"
           }}>
-            Create Attendance Session
+            Live Attendance QR
           </h3>
 
           <select
@@ -185,7 +251,7 @@ export default function Teacher({ onLogout, user }) {
               padding: "12px",
               borderRadius: "8px",
               border: "1px solid #ccc",
-              marginBottom: "15px",
+              marginBottom: "20px",
               fontSize: "15px"
             }}
           >
@@ -195,48 +261,65 @@ export default function Teacher({ onLogout, user }) {
             </option>
 
             {courses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.course_name} ({c.course_code})
+
+              <option
+                key={c.id}
+                value={c.id}
+              >
+                {c.course_name}
+                {" "}
+                ({c.course_code})
               </option>
+
             ))}
 
           </select>
-
-          <button
-            onClick={generateQR}
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "13px",
-              background: loading
-                ? "#999"
-                : "#007bff",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "16px"
-            }}
-          >
-            {loading
-              ? "Generating..."
-              : "Generate QR"}
-          </button>
 
           {/* QR */}
           <div
             id="qrcode"
             style={{
-              marginTop: "25px",
               display: "flex",
               justifyContent: "center",
-              alignItems: "center"
+              alignItems: "center",
+              minHeight: "280px"
             }}
-          ></div>
+          >
 
-          {/* SESSION */}
+            {!selectedCourse && (
+              <div style={{
+                color: "#777"
+              }}>
+                Select subject to start QR
+              </div>
+            )}
+
+            {loading && (
+              <div>
+                Generating QR...
+              </div>
+            )}
+
+          </div>
+
+          {/* COUNTDOWN */}
+          {selectedCourse && (
+
+            <div style={{
+              textAlign: "center",
+              marginTop: "15px",
+              fontWeight: "bold",
+              color: "#007bff",
+              fontSize: "18px"
+            }}>
+              Refreshing in {timer}s
+            </div>
+
+          )}
+
+          {/* SESSION ID */}
           {sessionId && (
+
             <div style={{
               marginTop: "15px",
               textAlign: "center",
@@ -248,6 +331,7 @@ export default function Teacher({ onLogout, user }) {
             }}>
               Session ID: {sessionId}
             </div>
+
           )}
 
         </div>
@@ -257,7 +341,8 @@ export default function Teacher({ onLogout, user }) {
           background: "#fff",
           padding: "22px",
           borderRadius: "14px",
-          boxShadow: "0 4px 10px rgba(0,0,0,0.08)"
+          boxShadow:
+            "0 4px 10px rgba(0,0,0,0.08)"
         }}>
 
           <h3 style={{
@@ -270,7 +355,9 @@ export default function Teacher({ onLogout, user }) {
           <input
             value={manualSession}
             onChange={(e) =>
-              setManualSession(e.target.value)
+              setManualSession(
+                e.target.value
+              )
             }
             placeholder="Session ID"
             style={{
@@ -285,7 +372,9 @@ export default function Teacher({ onLogout, user }) {
           <input
             value={manualStudent}
             onChange={(e) =>
-              setManualStudent(e.target.value)
+              setManualStudent(
+                e.target.value
+              )
             }
             placeholder="Student ID"
             style={{

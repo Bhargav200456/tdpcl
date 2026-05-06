@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* ✅ DATABASE CONNECTION (RENDER + NEON) */
+/* ✅ DATABASE CONNECTION */
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -17,13 +17,15 @@ const pool = new Pool({
   },
 });
 
-/* ✅ TEST DATABASE CONNECTION */
+/* ✅ TEST DATABASE */
 pool.connect((err) => {
+
   if (err) {
     console.log("❌ Database connection failed:", err.message);
   } else {
     console.log("✅ PostgreSQL connected");
   }
+
 });
 
 /* ✅ TEST ROUTE */
@@ -114,7 +116,7 @@ app.get("/teacher-courses/:teacher_id", async (req, res) => {
   }
 });
 
-/* 🕒 CREATE SESSION */
+/* 🕒 CREATE SESSION (AUTO QR ROTATION) */
 app.post("/create-session", async (req, res) => {
 
   const { course_id, teacher_id } = req.body;
@@ -129,6 +131,15 @@ app.post("/create-session", async (req, res) => {
 
   try {
 
+    /* ❌ DISABLE OLD QR */
+    await pool.query(
+      `UPDATE attendance_sessions
+       SET is_active = false
+       WHERE teacher_id = $1`,
+      [teacher_id]
+    );
+
+    /* ✅ CREATE NEW QR */
     const result = await pool.query(
 
       `INSERT INTO attendance_sessions
@@ -148,7 +159,7 @@ app.post("/create-session", async (req, res) => {
         $2,
         CURRENT_DATE,
         NOW(),
-        NOW() + interval '10 minutes',
+        NOW() + interval '10 seconds',
         $3,
         true,
         NOW()
@@ -184,12 +195,14 @@ app.post("/scan", async (req, res) => {
 
   try {
 
+    console.log("SCANNED TOKEN:", token);
+
+    /* ✅ FIND ACTIVE QR */
     const session = await pool.query(
       `SELECT *
        FROM attendance_sessions
        WHERE qr_code_token = $1
-       AND is_active = true
-       AND NOW() BETWEEN start_time AND end_time`,
+       AND is_active = true`,
       [token]
     );
 
@@ -201,10 +214,37 @@ app.post("/scan", async (req, res) => {
 
     const session_id = session.rows[0].id;
 
+    /* ✅ PREVENT DUPLICATE ATTENDANCE */
+    const existing = await pool.query(
+      `SELECT *
+       FROM attendance_records
+       WHERE session_id = $1
+       AND student_id = $2`,
+      [session_id, student_id]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.status(400).json({
+        message: "Attendance already marked",
+      });
+    }
+
+    /* ✅ INSERT ATTENDANCE */
     await pool.query(
       `INSERT INTO attendance_records
-      (session_id, student_id, scanned_at, status)
-      VALUES ($1, $2, NOW(), 'present')`,
+      (
+        session_id,
+        student_id,
+        scanned_at,
+        status
+      )
+      VALUES
+      (
+        $1,
+        $2,
+        NOW(),
+        'present'
+      )`,
       [session_id, student_id]
     );
 
@@ -237,8 +277,19 @@ app.post("/manual", async (req, res) => {
 
     await pool.query(
       `INSERT INTO attendance_records
-      (session_id, student_id, scanned_at, status)
-      VALUES ($1, $2, NOW(), 'present')`,
+      (
+        session_id,
+        student_id,
+        scanned_at,
+        status
+      )
+      VALUES
+      (
+        $1,
+        $2,
+        NOW(),
+        'present'
+      )`,
       [session_id, student_id]
     );
 
@@ -256,7 +307,7 @@ app.post("/manual", async (req, res) => {
   }
 });
 
-/* ✅ PORT FOR RENDER */
+/* ✅ PORT */
 const PORT = process.env.PORT || 5000;
 
 /* 🚀 START SERVER */

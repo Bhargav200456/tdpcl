@@ -1,34 +1,76 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { scanQR } from "./api";
 
 export default function Student({ onLogout, user }) {
 
+  const [status, setStatus] = useState("");
+  const [scanned, setScanned] = useState(false);
+
   useEffect(() => {
-    const scanner = new Html5QrcodeScanner("reader", {
-      fps: 10,
-      qrbox: 250
-    });
 
-    scanner.render(async (decodedText) => {
-      const student_id = document.getElementById("studentId").value;
+    const scanner = new Html5QrcodeScanner(
+      "reader",
+      {
+        fps: 10,
+        qrbox: {
+          width: 250,
+          height: 250
+        },
+        aspectRatio: 1.0,
+      },
+      false
+    );
 
-      if (!student_id) {
-        alert("Enter Student ID first");
-        return;
+    scanner.render(
+      async (decodedText) => {
+
+        /* 🚫 PREVENT MULTIPLE SCANS */
+        if (scanned) return;
+
+        setScanned(true);
+
+        try {
+
+          const res = await scanQR(
+            decodedText,
+            user.id
+          );
+
+          setStatus(
+            res.message || "Attendance marked"
+          );
+
+        } catch (err) {
+
+          console.error(err);
+
+          setStatus("Scan failed");
+
+        }
+
+        /* 🔄 ALLOW RESCAN AFTER 5s */
+        setTimeout(() => {
+          setScanned(false);
+        }, 5000);
+
+      },
+
+      (error) => {
+        /* silent scanner errors */
       }
+    );
 
-      const res = await scanQR(decodedText, student_id);
-      document.getElementById("status").innerText = res.message;
-    });
+    return () => {
+      scanner.clear().catch(() => {});
+    };
 
-    return () => scanner.clear();
-  }, []);
+  }, [user, scanned]);
 
   return (
     <div style={{
       minHeight: "100vh",
-      background: "#f4f6f8",
+      background: "#eef2f7",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
@@ -36,87 +78,95 @@ export default function Student({ onLogout, user }) {
       fontFamily: "Arial, sans-serif"
     }}>
 
-      {/* 🔝 HEADER WITH LOGOUT */}
+      {/* 🔝 HEADER */}
       <div style={{
         width: "100%",
-        maxWidth: "400px",
+        maxWidth: "420px",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: "10px"
+        marginBottom: "15px"
       }}>
-        <span style={{ fontWeight: "bold" }}>
+
+        <div style={{
+          fontWeight: "bold",
+          color: "#333",
+          fontSize: "17px"
+        }}>
           👨‍🎓 {user?.name}
-        </span>
+        </div>
 
         <button
           onClick={onLogout}
           style={{
-            padding: "8px 12px",
+            padding: "9px 14px",
             background: "#dc3545",
             color: "#fff",
             border: "none",
-            borderRadius: "6px",
-            cursor: "pointer"
+            borderRadius: "8px",
+            cursor: "pointer",
+            fontWeight: "bold"
           }}
         >
           Logout
         </button>
+
       </div>
 
       {/* 📦 MAIN CARD */}
       <div style={{
         width: "100%",
-        maxWidth: "400px",
+        maxWidth: "420px",
         background: "#ffffff",
-        borderRadius: "12px",
-        padding: "20px",
-        boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+        borderRadius: "16px",
+        padding: "22px",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
         textAlign: "center"
       }}>
 
         <h2 style={{
-          marginBottom: "15px",
-          color: "#333"
+          marginBottom: "8px",
+          color: "#222"
         }}>
           Scan Attendance
         </h2>
 
-        <input
-          id="studentId"
-          placeholder="Enter Student ID"
-          style={{
-            width: "100%",
-            padding: "12px",
-            fontSize: "16px",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
-            marginBottom: "15px",
-            outline: "none"
-          }}
-        />
+        <p style={{
+          marginBottom: "18px",
+          color: "#666",
+          fontSize: "14px"
+        }}>
+          Point your camera at the QR code
+        </p>
 
+        {/* 📷 QR READER */}
         <div
           id="reader"
           style={{
             width: "100%",
-            borderRadius: "10px",
             overflow: "hidden",
-            border: "2px solid #eee"
+            borderRadius: "14px",
+            border: "2px solid #e5e5e5",
+            background: "#fafafa"
           }}
         ></div>
 
-        <p
-          id="status"
-          style={{
-            marginTop: "15px",
-            fontSize: "15px",
-            color: "#007bff",
-            minHeight: "20px"
-          }}
-        ></p>
+        {/* ✅ STATUS */}
+        <div style={{
+          marginTop: "18px",
+          minHeight: "24px",
+          fontWeight: "bold",
+          color:
+            status.includes("marked")
+              ? "green"
+              : "#007bff",
+          fontSize: "15px"
+        }}>
+          {status}
+        </div>
 
       </div>
+
     </div>
   );
 }

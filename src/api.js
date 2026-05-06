@@ -1,33 +1,43 @@
-// 🔴 PASTE YOUR IP HERE BEFORE DEMO
-// Example: http://192.168.1.5:5000
-const API_URL = "http://192.168.137.1:5000"; 
-
-// 🔥 Auto fallback (prevents crash if you forget to set it)
-const BASE_URL = API_URL || "http://localhost:5000";
+const API_URL = "http://192.168.137.1:5000";
+// 🔴 Replace with YOUR laptop IP
 
 /* 🔐 LOGIN */
 export async function loginUser(email, password) {
   try {
-    const res = await fetch(`${BASE_URL}/login`, {
+    const res = await fetch(`${API_URL}/login`, {
       method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ email, password })
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
     });
 
     return await res.json();
+
   } catch (err) {
     console.error("LOGIN ERROR:", err);
-    return { message: "Login failed" };
+
+    return {
+      message: "Login failed",
+    };
   }
 }
 
 /* 📚 GET COURSES */
-export async function getTeacherCourses(id) {
+export async function getTeacherCourses(teacher_id) {
   try {
-    const res = await fetch(`${BASE_URL}/teacher-courses/${id}`);
+    const res = await fetch(
+      `${API_URL}/teacher-courses/${teacher_id}`
+    );
+
     return await res.json();
+
   } catch (err) {
     console.error("COURSE ERROR:", err);
+
     return [];
   }
 }
@@ -35,47 +45,74 @@ export async function getTeacherCourses(id) {
 /* 🕒 CREATE SESSION */
 export async function createSession(course_id, teacher_id) {
   try {
-    const res = await fetch(`${BASE_URL}/create-session`, {
+    const res = await fetch(`${API_URL}/create-session`, {
       method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ course_id, teacher_id })
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        course_id,
+        teacher_id,
+      }),
     });
 
     return await res.json();
+
   } catch (err) {
     console.error("CREATE SESSION ERROR:", err);
-    return null;
+
+    return {
+      message: "Session creation failed",
+    };
   }
 }
 
 /* 📷 SCAN QR */
 export async function scanQR(token, student_id) {
   try {
-    const res = await fetch(`${BASE_URL}/scan`, {
+    const res = await fetch(`${API_URL}/scan`, {
       method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ token, student_id })
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        token,
+        student_id,
+      }),
     });
 
     return await res.json();
+
   } catch (err) {
     console.error("SCAN ERROR:", err);
-    return { message: "Scan failed" };
+
+    return {
+      message: "Scan failed",
+    };
   }
 }
 
-/* ✍️ MANUAL */
+/* ✍️ MANUAL ATTENDANCE */
 export async function manualMark(session_id, student_id) {
   try {
-    const res = await fetch(`${BASE_URL}/manual`, {
+    const res = await fetch(`${API_URL}/manual`, {
       method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ session_id, student_id })
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        session_id,
+        student_id,
+      }),
     });
 
     return await res.json();
+
   } catch (err) {
     console.error("MANUAL ERROR:", err);
-    return { message: "Manual failed" };
+
+    return {
+      message: "Manual attendance failed",
+    };
   }
 }

@@ -1,41 +1,69 @@
 import { useState } from "react";
+
 import Student from "./Student";
 import Teacher from "./Teacher";
 import Login from "./Login";
 
 function App() {
+
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem("user"))
   );
 
-  // 🔐 Save user after login
+  /* 🔐 SAVE USER AFTER LOGIN */
   const handleSetUser = (data) => {
-    localStorage.setItem("user", JSON.stringify(data));
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify(data)
+    );
+
     setUser(data);
   };
 
-  // 🚪 LOGOUT FUNCTION
+  /* 🚪 LOGOUT */
   const handleLogout = () => {
+
     localStorage.removeItem("user");
+
     setUser(null);
   };
 
-  // 🔐 If not logged in → show login
+  /* 🔐 LOGIN SCREEN */
   if (!user) {
-    return <Login setUser={handleSetUser} />;
+
+    return (
+      <Login setUser={handleSetUser} />
+    );
   }
 
-  // 👨‍🎓 Student view
+  /* 👨‍🎓 STUDENT */
   if (user.role === "student") {
-    return <Student onLogout={handleLogout} user={user} />;
+
+    return (
+      <Student
+        user={user}
+        onLogout={handleLogout}
+      />
+    );
   }
 
-  // 👨‍🏫 Teacher view
+  /* 👨‍🏫 TEACHER */
   if (user.role === "teacher") {
-    return <Teacher onLogout={handleLogout} user={user} />;
+
+    return (
+      <Teacher
+        user={user}
+        onLogout={handleLogout}
+      />
+    );
   }
 
-  return <div>Invalid user role</div>;
+  return (
+    <div>
+      Invalid user role
+    </div>
+  );
 }
 
 export default App;
